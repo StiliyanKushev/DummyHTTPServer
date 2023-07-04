@@ -6,6 +6,7 @@ namespace HTTPServer;
 
 public struct HTTPResponse
 {
+    public HttpContentHeaders ContentHeaders;
     public HttpResponseHeaders Headers;
     public HttpStatusCode StatusCode;
     public Stream ResponseStream;
@@ -22,9 +23,15 @@ public class HTTPClient
     public static async Task<HTTPResponse> MakeRequest(
         Uri url,
         HttpMethod method,
-        HttpRequestHeaders headers)
+        HttpRequestHeaders headers,
+        Stream? requestBodyStream)
     {
         var request = new HttpRequestMessage(method, url);
+
+        if (requestBodyStream != null)
+        {
+            request.Content = new StreamContent(requestBodyStream);
+        }
 
         foreach (var header in headers)
         {   
@@ -36,6 +43,7 @@ public class HTTPClient
 
         return new HTTPResponse
         {
+            ContentHeaders = response.Content.Headers,
             Headers = response.Headers,
             StatusCode = response.StatusCode,
             ResponseStream = await response.Content.ReadAsStreamAsync()
@@ -69,13 +77,24 @@ public class HTTPClient
     /// Converts HttpResponseHeaders to WebHeaderCollection.
     /// </summary>
     public static WebHeaderCollection CreateResponseHeaders(
-        HttpResponseHeaders responseHeaders)
+        HttpResponseHeaders responseHeaders,
+        HttpContentHeaders contentHeaders)
     {
         var webHeaders = new WebHeaderCollection();
 
         foreach (
             var (headerName, headerValues) 
             in responseHeaders)
+        {
+            foreach (var value in headerValues)
+            {
+                webHeaders.Add(headerName, value);
+            }
+        }
+        
+        foreach (
+            var (headerName, headerValues) 
+            in contentHeaders)
         {
             foreach (var value in headerValues)
             {

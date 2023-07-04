@@ -69,31 +69,40 @@ public class HTTPServer
 
         try
         {
+            Stream? requestBodyStream = null;
+            
             if (request.HasEntityBody)
             {
-                // todo: implement request body handling
+                // implement request body handling
+                requestBodyStream = request.InputStream;
             }
-
+            
             // make the request locally and retrieve the response info
             var requestResponse = await HTTPClient.MakeRequest(
                 correctUri, 
                 new HttpMethod(request.HttpMethod), 
-                HTTPClient.CreateHeaders(request.Headers));
-
-            // prepare the response object
-            response.StatusCode = (int)requestResponse.StatusCode;
+                HTTPClient.CreateHeaders(request.Headers),
+                requestBodyStream);
+            
+            // fire the response headers to the client
             response.Headers = HTTPClient.CreateResponseHeaders(
-                requestResponse.Headers);
-
-            Console.WriteLine($"Response headers: {response.Headers}");
-
+                requestResponse.Headers, requestResponse.ContentHeaders);
+            response.StatusCode = (int)requestResponse.StatusCode;
+            
+            // if you don't remove content-length here we get .net errors.
+            // this seems to be a bug in the bad design of .net.
+            response.Headers.Remove("content-length");
+            
+            Console.WriteLine($"Response Headers:\n{response.Headers}");
+            
             // return the response stream and close
-            await requestResponse.ResponseStream.CopyToAsync(response.OutputStream);
+            await requestResponse.ResponseStream.CopyToAsync(
+                response.OutputStream);
             response.OutputStream.Close();
         }
-        catch
+        catch (Exception e)
         {
-            // ignored
+            Console.WriteLine(e);
         }
     }
 }
