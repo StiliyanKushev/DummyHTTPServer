@@ -90,7 +90,8 @@ public class HTTPServer
             response.StatusCode = (int)requestResponse.StatusCode;
             
             // if you don't remove content-length here we get .net errors.
-            // this seems to be a bug in the bad design of .net.
+            // this seems to be an issue with the bad design of .net.
+            // doesn't matter, browsers work without it.
             response.Headers.Remove("content-length");
             
             Console.WriteLine($"Response Headers:\n{response.Headers}");
